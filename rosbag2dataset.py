@@ -55,4 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('--odom_topic', type=str, default='/odom')
     args = parser.parse_args()
 
+    if args.bagfile_name is None:
+        raise ValueError('set bagfile')
+
     main(args)
