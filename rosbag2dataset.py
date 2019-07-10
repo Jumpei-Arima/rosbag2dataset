@@ -10,10 +10,8 @@ import rosbag
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-import torch
-
 def main(args):
-    # rospy.init_node('rosbag2dataset', anonymous=True)
+    rospy.init_node('rosbag2dataset', anonymous=True)
     print(__file__ + " start!!")
     print('bagfile: ' + args.bagfile_name)
 
@@ -27,25 +25,27 @@ def main(args):
     print(topics)
     bridge = CvBridge()
     while not rospy.is_shutdown():
-        try:
-            for topic, msg, time in bag.read_messages(topics=topics):
-                if topic==args.image_topic:
-                    try:
-                        img = bridge.imgmsg_to_cv2(msg,"rgb8")
-                        # cv2.imshow("image", img)
-                        # cv2.waitKey(1)
-                    except CvBridgeError as e:
-                        print(e) 
+        velocities = []
+        for topic, msg, time in bag.read_messages(topics=topics):
+            if topic==args.image_topic:
+                try:
+                    img = bridge.imgmsg_to_cv2(msg,"rgb8")
+                except CvBridgeError as e:
+                    print(e) 
+                if args.show_image:
+                    cv2.imshow("image", img)
+                    cv2.waitKey(1)
+                if args.save:
+                    file_name = args.out_dir + str(time) + '.jpg'
+                    cv2.imwrite(file_name, img)
 
-                if topic==args.odom_topic:
-                    vel = (msg.twist.twist.linear.x, msg.twist.twist.angular.z)
-                    print(vel)
-                print(time)
-        except Exception as e:
-            rospy.logwarn("fail: %s", e)
+                velocities = []  
 
-        finally:
-            bag.close()
+            if topic==args.odom_topic:
+                velocities.append([msg.twist.twist.linear.x, msg.twist.twist.angular.z])
+            print(time)
+
+        bag.close()
 
 
 if __name__ == '__main__':
@@ -53,6 +53,10 @@ if __name__ == '__main__':
     parser.add_argument('--bagfile_name', type=str)
     parser.add_argument('--image_topic', type=str, default='/camera/color/image_raw')
     parser.add_argument('--odom_topic', type=str, default='/odom')
+    parser.add_argument('--imu_topic', type=str, default='/imu/data')
+    parser.add_argument('--out_dir', type=str, default='dataset/')
+    parser.add_argument('--show_image', action='store_true', default=False)
+    parser.add_argument('--save', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.bagfile_name is None:
