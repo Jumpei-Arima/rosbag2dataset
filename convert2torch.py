@@ -12,7 +12,6 @@ import torchvision
 from multiprocessing import Pool
 
 def convert(time_idx):
-    print(time_idx)
     img_files = sorted(glob.glob(f"/home/amsl/workspace/rosbag2dataset/dataset/img/{time_idx}.jpg"))
     vel_files = sorted(glob.glob(f"/home/amsl/workspace/rosbag2dataset/dataset/vel/{time_idx}.npy"))
     images = torch.stack([torchvision.transforms.ToTensor()(Image.open(img)) for img in img_files])
