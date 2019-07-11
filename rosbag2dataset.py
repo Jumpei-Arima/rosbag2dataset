@@ -45,11 +45,11 @@ def main(args):
                         vel_file_name = args.out_dir + '/vel/' + str(last_time) + '.npy'
                         cv2.imwrite(img_file_name, img)
                         np.save(vel_file_name, vel)
+                        last_time = time
                     
                 if args.show_image:
                     cv2.imshow("image", img)
                     cv2.waitKey(1)
-                last_time = time
             except CvBridgeError as e:
                 print(e) 
 
@@ -60,7 +60,6 @@ def main(args):
             exit()
 
     bag.close()
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
