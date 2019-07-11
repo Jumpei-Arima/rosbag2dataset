@@ -24,28 +24,42 @@ def main(args):
     topics = [args.image_topic, args.odom_topic]
     print(topics)
     bridge = CvBridge()
-    while not rospy.is_shutdown():
-        velocities = []
-        for topic, msg, time in bag.read_messages(topics=topics):
-            if topic==args.image_topic:
-                try:
-                    img = bridge.imgmsg_to_cv2(msg,"rgb8")
-                except CvBridgeError as e:
-                    print(e) 
+    velocities = []
+    last_time = None
+    for topic, msg, time in bag.read_messages(topics=topics):
+        if topic==args.image_topic:
+            if last_time is None:
+                last_time = time
+            try:
+                img = bridge.imgmsg_to_cv2(msg,"bgr8")
+                h,w,c = img.shape
+                img = img[0:h,int((w-h)*0.5):w-int((w-h)*0.5),:]
+                img = cv2.resize(img, (args.height, args.width))
+                
+                if len(velocities) > 0:
+                    vel = np.mean(velocities, axis=0)
+                    velocities = []  
+
+                    if args.save:
+                        img_file_name = args.out_dir + '/img/' + str(time) + '.jpg'
+                        vel_file_name = args.out_dir + '/vel/' + str(last_time) + '.npy'
+                        cv2.imwrite(img_file_name, img)
+                        np.save(vel_file_name, vel)
+                    
                 if args.show_image:
                     cv2.imshow("image", img)
                     cv2.waitKey(1)
-                if args.save:
-                    file_name = args.out_dir + str(time) + '.jpg'
-                    cv2.imwrite(file_name, img)
+                last_time = time
+            except CvBridgeError as e:
+                print(e) 
 
-                velocities = []  
 
-            if topic==args.odom_topic:
-                velocities.append([msg.twist.twist.linear.x, msg.twist.twist.angular.z])
-            print(time)
+        if topic==args.odom_topic:
+            velocities.append([msg.twist.twist.linear.x, msg.twist.twist.angular.z])
+        if rospy.is_shutdown():
+            exit()
 
-        bag.close()
+    bag.close()
 
 
 if __name__ == '__main__':
@@ -53,8 +67,9 @@ if __name__ == '__main__':
     parser.add_argument('--bagfile_name', type=str)
     parser.add_argument('--image_topic', type=str, default='/camera/color/image_raw')
     parser.add_argument('--odom_topic', type=str, default='/odom')
-    parser.add_argument('--imu_topic', type=str, default='/imu/data')
     parser.add_argument('--out_dir', type=str, default='dataset/')
+    parser.add_argument('--width', type=int, default='472')
+    parser.add_argument('--height', type=int, default='472')
     parser.add_argument('--show_image', action='store_true', default=False)
     parser.add_argument('--save', action='store_true', default=False)
     args = parser.parse_args()
