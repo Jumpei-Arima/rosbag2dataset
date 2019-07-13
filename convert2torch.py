@@ -1,4 +1,5 @@
 import os
+import argparse
 import collections
 import glob
 
@@ -9,25 +10,29 @@ import numpy as np
 import torch
 import torchvision
 
-from multiprocessing import Pool
-
-def convert(time_idx):
-    img_files = sorted(glob.glob(f"/home/amsl/workspace/rosbag2dataset/dataset/img/{time_idx}.jpg"))
-    vel_files = sorted(glob.glob(f"/home/amsl/workspace/rosbag2dataset/dataset/vel/{time_idx}.npy"))
-    images = torch.stack([torchvision.transforms.ToTensor()(Image.open(img)) for img in img_files])
-    velocities = []
-    for vel_path in vel_files:
-        velocities.append(np.load(vel_path))
-    velocities = torch.tensor(velocities)
-    scene = Scene(images, velocities)
-    torch.save(scene, f"/home/amsl/workspace/rosbag2dataset/dataset/scenes/{int(time_idx)}.pt")
+def convert(time, img, vel):
+    image = torchvision.transforms.ToTensor()(Image.open(img))
+    velocity = torch.tensor(np.load(vel))
+    scene = Scene(image, velocity)
+    return scene
     
 if __name__ == "__main__":
-    path = os.path.dirname(os.path.abspath(__file__)) + "/dataset/vel"
-    path_list = os.listdir(path)
-    time_list = list(set(path[0:19] for path in path_list))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dir_name', type=str, default='dataset')
+    args= parser.parse_args()
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.dir_name)
+    path_list = os.listdir(os.path.join(path,"vel"))
+    print(path)
+    os.makedirs(os.path.join(path,"scenes"))
+    time_list = list(set(path[0:20] for path in path_list))
     
     Scene = collections.namedtuple('Scene', ['image', 'velocity'])
-    
-    p = Pool()
-    p.map(convert, time_list)
+
+    pbar = tqdm(total=len(time_list))
+    for time in time_list:
+        img_file_path = os.path.join(path,"img",(str(time)+".jpg"))
+        vel_file_path = os.path.join(path,"vel",(str(time)+".npy"))
+        scene = convert(time, img_file_path, vel_file_path)
+        torch.save(scene, os.path.join(path, "scenes", (str(time)+".pt")))
+        pbar.update(1)
+    pbar.close()

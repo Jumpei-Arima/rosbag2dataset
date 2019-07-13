@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+import os
 import sys
 import argparse
 import numpy as np
+import time
+from datetime import datetime
 
 import cv2
 
@@ -10,7 +13,7 @@ import rosbag
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-def main(args):
+def main(args, out_dir):
     rospy.init_node('rosbag2dataset', anonymous=True)
     print(__file__ + " start!!")
     print('bagfile: ' + args.bagfile_name)
@@ -27,9 +30,11 @@ def main(args):
     velocities = []
     last_time = None
     for topic, msg, time in bag.read_messages(topics=topics):
+        t = datetime.fromtimestamp(float(str(time.secs) + '.' + str(time.nsecs)))
+        t = t.strftime('%Y%m%d%H%M%S%f')
         if topic==args.image_topic:
             if last_time is None:
-                last_time = time
+                last_time = t
             try:
                 img = bridge.imgmsg_to_cv2(msg,"bgr8")
                 h,w,c = img.shape
@@ -41,11 +46,13 @@ def main(args):
                     velocities = []  
 
                     if args.save:
-                        img_file_name = args.out_dir + '/img/' + str(time) + '.jpg'
-                        vel_file_name = args.out_dir + '/vel/' + str(last_time) + '.npy'
+                        img_file_name = out_dir + '/img/' + str(t) + '.jpg'
+                        vel_file_name = out_dir + '/vel/' + str(last_time) + '.npy'
+                        print(img_file_name)
+                        print(vel_file_name)
                         cv2.imwrite(img_file_name, img)
                         np.save(vel_file_name, vel)
-                        last_time = time
+                        last_time = t
                     
                 if args.show_image:
                     cv2.imshow("image", img)
@@ -75,5 +82,11 @@ if __name__ == '__main__':
 
     if args.bagfile_name is None:
         raise ValueError('set bagfile')
+    file_name = args.bagfile_name[-23:-4]
+    out_dir = os.path.join(args.out_dir,file_name)
+    print(out_dir)
+    os.makedirs(out_dir)
+    os.makedirs(os.path.join(out_dir, "img"))
+    os.makedirs(os.path.join(out_dir, "vel"))
 
-    main(args)
+    main(args, out_dir)
