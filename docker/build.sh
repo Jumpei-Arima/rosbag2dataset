@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build . -t rosbag2dataset
+docker build . -t arijun/rosbag2dataset

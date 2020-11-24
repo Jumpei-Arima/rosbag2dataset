@@ -1,11 +1,9 @@
-#!/bin/bash
-
-BAGFILE_DIR=${HOME}/bagfiles
+#!/bin/sh
 
 docker run -it --rm \
-    -v ${PWD}/../:/root/scripts \
-    -v ${BAGFILE_DIR}/:/root/bagfiles \
-    --name rosbag2dataset \
-    rosbag2dataset \
-    bash
-    # bash -c "cd /root/scripts; python rosbag2dataset.py --config ${CONFIG_FILE}"
+    --privileged \
+    -v ${PWD}/../:/root/ \
+    -v ${RWRC_DATASET_DIR}:/root/dataset \
+    --name rwrc20_rosbag2dataset \
+    arima/rosbag2dataset \
+    bash -c "python3 rosbag2dataset.py"
