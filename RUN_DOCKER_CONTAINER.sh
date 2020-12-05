@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 IMAGE_NAME=ghcr.io/jumpei-arima/rosbag2dataset:latest
 CONTAINER_NAME=rosbag2dataset
