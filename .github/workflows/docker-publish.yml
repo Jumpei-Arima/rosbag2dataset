@@ -22,7 +22,7 @@ jobs:
 
   # Push image to GitHub Packages.
   push:
-    needs: push
+    needs: test
 
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
