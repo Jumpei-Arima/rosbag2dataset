@@ -68,7 +68,6 @@ if __name__ == '__main__':
         file_name = ("%d.pt" % (idx))
         t0 = idx*config["traj_steps"]
         t1 = t0+config["traj_steps"]
-        print("traj: %d, %d step ~ %d step" % (idx+1, t0, t1))
         for data_name in config["dataset"]:
             path = os.path.join(out_dir, data_name, file_name)
             if data_name == "pos":
