@@ -14,22 +14,22 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default="config.json")
     args = parser.parse_args()
 
-    config_path = os.path.join(os.path.dirname(__file__), args.config)
-    if os.path.exists(config_path):
-        with open(config_path, "r") as f:
+    if os.path.exists(args.config):
+        with open(args.config, "r") as f:
             config = json.load(f)
     else:
         raise ValueError("cannot find config file")
 
-    if not os.path.exists(config["bagfile"]):
+    bagfile = os.path.join(config["bagfile_dir"], config["bagfile_name"]) 
+    if not os.path.exists(bagfile):
         raise ValueError('set bagfile')
-    file_name = os.path.splitext(os.path.basename(config["bagfile"]))[0]
+    file_name = os.path.splitext(os.path.basename(bagfile))[0]
     out_dir = os.path.join(config["output_dir"], file_name)
     print("out_dir: ", out_dir)
     os.makedirs(out_dir, exist_ok=True)
     for data_name in config["dataset"]:
         os.makedirs(os.path.join(out_dir, data_name), exist_ok=True)
-    rosbag_handler = RosbagHandler(config["bagfile"])
+    rosbag_handler = RosbagHandler(bagfile)
 
     t0 = rosbag_handler.start_time
     t1 = rosbag_handler.end_time
