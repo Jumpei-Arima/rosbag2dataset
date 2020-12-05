@@ -10,7 +10,7 @@ def convert_Image(data, height=None, width=None):
     bridge = CvBridge()
     for msg in tqdm(data):
         try:
-            img = bridge.imgmsg_to_cv2(msg,"rgb8")
+            img = bridge.imgmsg_to_cv2(msg,"bgr8")
         except CvBridgeError as e:
             print(e)
         if height is not None and width is not None:
