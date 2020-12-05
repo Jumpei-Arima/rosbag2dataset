@@ -28,6 +28,10 @@ class RosbagHandler:
         print("end time:   " + str(self.end_time))
 
     def read_messages(self, topics=None, start_time=None, end_time=None, hz=None):
+        if start_time is None:
+            start_time = self.start_time
+        if end_time is None:
+            end_time = self.end_time
         start_time = rospy.Time.from_seconds(start_time)
         end_time = rospy.Time.from_seconds(end_time)
         data = {}
@@ -36,7 +40,10 @@ class RosbagHandler:
             data[topic] = []
             topic_names.append("/"+topic)
         for topic, msg, time in self.bag.read_messages(topics=topic_names, start_time=start_time, end_time=end_time):
-            data[topic[1:]].append([time.to_nsec()/1e9, msg])
+            if hz is not None:
+                data[topic[1:]].append([time.to_nsec()/1e9, msg])
+            else:
+                data[topic[1:]].append(msg)
         if hz is not None:
             data = self.convert_data(data, hz)
         return data

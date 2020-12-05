@@ -31,7 +31,6 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(out_dir, data_name), exist_ok=True)
     rosbag_handler = RosbagHandler(config["bagfile"])
 
-    goal_horizon = config["goal_steps"] / config["hz"]
     t0 = rosbag_handler.start_time
     t1 = rosbag_handler.end_time
     num_step = 0
@@ -40,22 +39,31 @@ if __name__ == '__main__':
     for topic in sample_data.keys():
         topic_type = rosbag_handler.get_topic_type(topic)
         if topic_type == "sensor_msgs/CompressedImage":
+            print("==== convert compressed image ====")
+            dataset["obs"] = convert_CompressedImage(sample_data[topic], config["height"], config["width"])
+        elif topic_type == "":
             print("==== convert image ====")
-            dataset["obs"] = convert2image(sample_data[topic], config["height"], config["width"])
+            dataset["obs"] = convert_Image(sample_data[topic], config["height"], config["width"])
         elif topic_type == "nav_msgs/Odometry":
             print("==== convert odom ====")
             dataset['acs'], dataset['pos'], dataset['goal'] = \
-                convert_from_odom(sample_data[topic], config['action_noise'],
+                convert_Odometry(sample_data[topic], config['action_noise'],
                                     config['lower_bound'], config["upper_bound"], config['goal_steps'])
+        elif topic_type == "geometry_msgs/Twist":
+            print("==== convert twist ====")
+            dataset['acs'] = convert_Twist(sample_data[topic], config['action_noise'], config['lower_bound'], config["upper_bound"])
         elif topic_type == "sensor_msgs/LaserScan":
             print("==== convert lidar ====")
-            dataset["lidar"] = convert2lidar(sample_data[topic])
+            dataset["lidar"] = convert_LaserScan(sample_data[topic])
         elif topic_type == "sensor_msgs/Imu":
             print("==== convert imu ====")
-            dataset["imu"] = convert2imu(sample_data[topic])
+            dataset["imu"] = convert_Imu(sample_data[topic])
 
     print("==== save data as torch tensor ====")
-    data_size = len(dataset["goal"])
+    if "goal" in config["dataset"]:
+        data_size = len(dataset["goal"])
+    else:
+        data_size = len(dataset["obs"])
     for idx in tqdm(range(data_size)):
         file_name = ("%d.pt" % (num_step))
         for data_name in config["dataset"]:
