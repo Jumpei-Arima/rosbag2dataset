@@ -23,7 +23,7 @@ if __name__ == '__main__':
     bagfile = os.path.join(config["bagfile_dir"], config["bagfile_name"]) 
     if not os.path.exists(bagfile):
         raise ValueError('set bagfile')
-    file_name = os.path.splitext(os.path.basename(bagfile))[0]
+    file_name = os.path.splitext(os.path.basename(bagfile))[0]+"_traj"+str(config["traj_steps"])
     out_dir = os.path.join(config["output_dir"], file_name)
     print("out_dir: ", out_dir)
     os.makedirs(out_dir, exist_ok=True)
@@ -33,7 +33,6 @@ if __name__ == '__main__':
 
     t0 = rosbag_handler.start_time
     t1 = rosbag_handler.end_time
-    num_step = 0
     sample_data = rosbag_handler.read_messages(topics=config["topics"], start_time=t0, end_time=t1, hz=config["hz"])
     dataset = {}
     for topic in sample_data.keys():
@@ -45,15 +44,15 @@ if __name__ == '__main__':
             print("==== convert image ====")
             dataset["obs"] = convert_Image(sample_data[topic], config["height"], config["width"])
         elif topic_type == "nav_msgs/Odometry":
-            print("==== convert odom ====")
-            dataset['acs'], dataset['pos'], dataset['goal'] = \
+            print("==== convert odometry ====")
+            dataset['acs'], dataset['pos'] = \
                 convert_Odometry(sample_data[topic], config['action_noise'],
-                                    config['lower_bound'], config["upper_bound"], config['goal_steps'])
+                                    config['lower_bound'], config["upper_bound"])
         elif topic_type == "geometry_msgs/Twist":
             print("==== convert twist ====")
             dataset['acs'] = convert_Twist(sample_data[topic], config['action_noise'], config['lower_bound'], config["upper_bound"])
         elif topic_type == "sensor_msgs/LaserScan":
-            print("==== convert lidar ====")
+            print("==== convert laser scan ====")
             dataset["lidar"] = convert_LaserScan(sample_data[topic])
         elif topic_type == "sensor_msgs/Imu":
             print("==== convert imu ====")
@@ -61,19 +60,41 @@ if __name__ == '__main__':
 
     print("==== save data as torch tensor ====")
     if "goal" in config["dataset"]:
-        data_size = len(dataset["goal"])
+        num_steps = len(dataset["acs"]) - config["goal_steps"]
     else:
-        data_size = len(dataset["obs"])
-    for idx in tqdm(range(data_size)):
-        file_name = ("%d.pt" % (num_step))
+        num_steps = len(dataset["acs"])
+    num_traj = int(num_steps/config["traj_steps"])
+    for idx in tqdm(range(num_traj)):
+        file_name = ("%d.pt" % (idx))
+        t0 = idx*config["traj_steps"]
+        t1 = t0+config["traj_steps"]
+        print("traj: %d, %d step ~ %d step" % (idx+1, t0, t1))
         for data_name in config["dataset"]:
             path = os.path.join(out_dir, data_name, file_name)
-            data = torch.tensor(dataset[data_name][idx], dtype=torch.float32)
+            if data_name == "pos":
+                traj_pos = dataset["pos"][t0:t1]
+                poses = []
+                init_pose = traj_pos[0].copy()
+                for idx, pose in tqdm(enumerate(traj_pos)):
+                    trans_pose = transform_pose(pose, init_pose)
+                    poses.append(trans_pose)
+                data = torch.tensor(poses, dtype=torch.float32)
+            elif data_name == "goal":
+                traj_pos = dataset["pos"][t0:t1+config["goal_steps"]]
+                goals = []
+                for idx, pose in tqdm(enumerate(traj_pos)):
+                    if idx+config["goal_steps"]<len(traj_pos):
+                        goal = transform_pose(traj_pos[idx+config["goal_steps"]], pose)
+                        goals.append(goal)
+                data = torch.tensor(goals, dtype=torch.float32)
+            else:
+                traj_data = dataset[data_name][t0:t1]
+                data = torch.tensor(traj_data, dtype=torch.float32)
             with open(path, "wb") as f:
                 torch.save(data, f)
-        num_step+=1
     
     with open(os.path.join(out_dir, 'info.txt'), 'w') as f:
         info = config
-        info['num_step'] = num_step
+        info['num_steps'] = num_steps
+        info['num_traj'] = num_traj
         json.dump(config, f)

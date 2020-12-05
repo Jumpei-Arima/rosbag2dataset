@@ -31,7 +31,7 @@ def convert_CompressedImage(data, height=None, width=None):
         obs.append(img)
     return obs
 
-def convert_Odometry(data, action_noise, lower_bound, upper_bound, goal_steps):
+def convert_Odometry(data, action_noise, lower_bound, upper_bound):
     acs = []
     pos = []
     goals = []
@@ -43,12 +43,7 @@ def convert_Odometry(data, action_noise, lower_bound, upper_bound, goal_steps):
         # pose
         pose = get_pose_from_odom(msg)
         pos.append(pose)
-    # goal
-    for idx, pose in tqdm(enumerate(pos)):
-        if idx+goal_steps < len(pos):
-            goal = transform_pose(pos[idx+goal_steps], pose)
-            goals.append(goal)
-    return acs, pos, goals
+    return acs, pos
 
 def convert_Twist(data, action_noise, lower_bound, upper_bound):
     acs = []
