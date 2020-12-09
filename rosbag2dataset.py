@@ -96,4 +96,4 @@ if __name__ == '__main__':
         info = config
         info['num_steps'] = num_steps
         info['num_traj'] = num_traj
-        json.dump(config, f)
+        json.dump(info, f)
