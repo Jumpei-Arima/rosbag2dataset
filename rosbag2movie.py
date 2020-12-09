@@ -26,11 +26,6 @@ def main():
     elif topic_type == "sensor_msgs/Image":
         images = convert_Image(img_data)
 
-    # for topic, msg, t in  rosbag.Bag(args.bagfile).read_messages(topics=[args.image_topic]):
-    #     img = cv2.imdecode(np.fromstring(msg.data, np.uint8), cv2.IMREAD_COLOR)
-    #     h, w, c = img.shape
-    #     images.append(img)
-
     h,w,c = images[0].shape
     file_name = os.path.splitext(os.path.basename(args.bagfile))[0]
     output_path = os.path.join(args.output_dir, file_name+".mp4")
