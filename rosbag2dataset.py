@@ -74,14 +74,14 @@ if __name__ == '__main__':
                 traj_pos = dataset["pos"][t0:t1]
                 poses = []
                 init_pose = traj_pos[0].copy()
-                for idx, pose in tqdm(enumerate(traj_pos)):
+                for idx, pose in enumerate(traj_pos):
                     trans_pose = transform_pose(pose, init_pose)
                     poses.append(trans_pose)
                 data = torch.tensor(poses, dtype=torch.float32)
             elif data_name == "goal":
                 traj_pos = dataset["pos"][t0:t1+config["goal_steps"]]
                 goals = []
-                for idx, pose in tqdm(enumerate(traj_pos)):
+                for idx, pose in enumerate(traj_pos):
                     if idx+config["goal_steps"]<len(traj_pos):
                         goal = transform_pose(traj_pos[idx+config["goal_steps"]], pose)
                         goals.append(goal)
