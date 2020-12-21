@@ -34,7 +34,6 @@ def convert_CompressedImage(data, height=None, width=None):
 def convert_Odometry(data, action_noise, lower_bound, upper_bound):
     acs = []
     pos = []
-    goals = []
     for msg in tqdm(data):
         # action
         vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.angular.z])
@@ -45,14 +44,29 @@ def convert_Odometry(data, action_noise, lower_bound, upper_bound):
         pos.append(pose)
     return acs, pos
 
-def convert_Twist(data, action_noise, lower_bound, upper_bound):
+def convert_Twist(data, action_noise, lower_bound, upper_bound, hz=None, use_pose=False):
     acs = []
+    if use_pose:
+        pos = []
+        pre_pose = [0.0, 0.0, 0.0]
     for msg in tqdm(data):
         # action
         vel = np.array([msg.linear.x, msg.angular.z])
+        if not lower_bound[0] < vel[0] <upper_bound[0]:
+            vel[0] = 0.0
+        if not lower_bound[1] < vel[1] <upper_bound[1]:
+            vel[1] = 0.0
+        # pose
+        if use_pose:
+            pose = state_transition(pre_pose, vel, hz)
+            pos.append(pose)
+            pre_pose = pose
         vel = add_random_noise(vel, action_noise, lower_bound, upper_bound)
         acs.append(vel)
-    return acs
+    if use_pose:
+        return acs, pos
+    else:
+        return acs
 
 def convert_LaserScan(data):
     lidar = []
@@ -98,3 +112,18 @@ def get_pose_from_odom(odom):
 def add_random_noise(action, std, lb, ub):
     action += np.random.randn(*action.shape) * std
     return action.clip(lb, ub)
+
+def state_transition(pose, action, hz):
+    pre_theta = pose[2]
+    DT = 1.0 / hz
+    p = [0.0,0.0,0.0]
+    if abs(action[1])<1e-10:
+        p[0] = pose[0] + action[0]*np.cos(pre_theta)*DT
+        p[1] = pose[1] + action[0]*np.sin(pre_theta)*DT
+        p[2] = pose[2] + action[1]*DT
+    else:
+        p[0] = pose[0] + action[0]/action[1]*(np.sin(pre_theta+action[1]*DT)-np.sin(pre_theta))
+        p[1] = pose[1] + action[0]/action[1]*(-np.cos(pre_theta+action[1]*DT)+np.cos(pre_theta))
+        p[2] = pose[2] + action[1]*DT
+    p[2] = angle_normalize(p[2])
+    return p

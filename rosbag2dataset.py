@@ -51,7 +51,7 @@ if __name__ == '__main__':
                                         config['lower_bound'], config["upper_bound"])
             elif topic_type == "geometry_msgs/Twist":
                 print("==== convert twist ====")
-                dataset['acs'] = convert_Twist(sample_data[topic], config['action_noise'], config['lower_bound'], config["upper_bound"])
+                dataset['acs'], dataset['pos'] = convert_Twist(sample_data[topic], config['action_noise'], config['lower_bound'], config["upper_bound"], hz=config["hz"], use_pose=True)
             elif topic_type == "sensor_msgs/LaserScan":
                 print("==== convert laser scan ====")
                 dataset["lidar"] = convert_LaserScan(sample_data[topic])
