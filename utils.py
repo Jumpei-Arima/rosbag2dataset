@@ -40,7 +40,7 @@ def convert_Odometry(data, action_noise, lower_bound, upper_bound):
         vel = add_random_noise(vel, action_noise, lower_bound, upper_bound)
         acs.append(vel)
         # pose
-        pose = get_pose_from_odom(msg)
+        pose = get_pose_from_msg(msg)
         pos.append(pose)
     return acs, pos
 
@@ -88,6 +88,14 @@ def convert_Imu(data):
         imu.append(imu_data)
     return imu
 
+def convert_PoseWithCovarianceStamped(data):
+    global_pos = []
+    for msg in tqdm(data):
+        # global pose
+        pose = get_pose_from_msg(msg)
+        global_pos.append(pose)
+    return global_pos
+
 def transform_pose(pose, base_pose):
     x = pose[0] - base_pose[0]
     y = pose[1] - base_pose[1]
@@ -104,9 +112,9 @@ def quaternion_to_euler(quaternion):
 def angle_normalize(z):
     return np.arctan2(np.sin(z), np.cos(z))
 
-def get_pose_from_odom(odom):
-    yaw = quaternion_to_euler(odom.pose.pose.orientation).z
-    pose = np.array([odom.pose.pose.position.x, odom.pose.pose.position.y, yaw])
+def get_pose_from_msg(msg):
+    yaw = quaternion_to_euler(msg.pose.pose.orientation).z
+    pose = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, yaw])
     return pose
 
 def add_random_noise(action, std, lb, ub):
