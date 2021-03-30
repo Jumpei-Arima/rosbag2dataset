@@ -58,12 +58,15 @@ if __name__ == '__main__':
             elif topic_type == "sensor_msgs/Imu":
                 print("==== convert imu ====")
                 dataset["imu"] = convert_Imu(sample_data[topic])
+            elif topic_type == "geometry_msgs/PoseWithCovarianceStamped":
+                print("==== convert pose ====")
+                dataset["global_pos"] = convert_PoseWithCovarianceStamped(sample_data[topic])
 
         print("==== save data as torch tensor ====")
         if "goal" in config["dataset"]:
             num_steps = len(dataset["acs"]) - config["goal_steps"]
         else:
-            num_steps = len(dataset["acs"])
+            num_steps = len(dataset["obs"])
         num_traj = int(num_steps/config["traj_steps"])
         for idx in tqdm(range(num_traj)):
             file_name = ("%d.pt" % (idx))
